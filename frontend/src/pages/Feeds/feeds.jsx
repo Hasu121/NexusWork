@@ -84,7 +84,7 @@ const Feeds = () => {
           <Card padding={true}>
             <div className="flex gap-2 items-center">
               <img
-                src={personalData?.profile_pic || "https://via.placeholder.com/150"}
+                src={personalData?.profile_pic || "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"}
                 alt="Your profile"
                 className="w-12 h-12 rounded-full border-2 border-white object-cover"
               />
@@ -111,8 +111,8 @@ const Feeds = () => {
         <div className="w-full flex flex-col gap-5">
             
             {
-              post.map((item,index) => {
-                return <Post item={item} key={index} personalData={personalData} />
+              post.map((item) => {
+                return <Post item={item} key={item._id || item.id} personalData={personalData} />
               })
             }
 

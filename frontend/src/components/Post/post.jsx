@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import ImageModal from "../Modal/ImageModal";
+import DeleteIcon from '@mui/icons-material/Delete';
 import Card from "../Card/card";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
@@ -7,16 +9,20 @@ import SendIcon from "@mui/icons-material/Send";
 import axios from "axios";
 import { ToastContainer,toast } from "react-toastify";
 
-const Post = ({ profile, item, key, personalData }) => {
+
+const Post = ({ profile, item, personalData }) => {
   const [seeMore, setSeeMore] = useState(false);
   const [comment, setComment] = useState(false);
 
   const [comments, setComments] = useState([]);
+  const [commentCount, setCommentCount] = useState(item?.comments || 0);
 
   const [liked, setLiked] = useState(false);
   const [numOfLikes, setNumOfLikes] = useState(item?.likes.length || 0);
 
   const [commentText, setCommentText] = useState("");
+
+  const [modalOpen, setModalOpen] = useState(false);
 
   const handleSendComment = async (e) => {
     e.preventDefault();
@@ -27,6 +33,7 @@ const Post = ({ profile, item, key, personalData }) => {
     await axios.post(`http://localhost:4000/api/comment`,{postId:item?._id, comment:commentText},{withCredentials: true}).then((res) => {
       setComments([res.data.comment,...comments]);
       setCommentText("");
+      setCommentCount((prev) => prev + 1);
     }).catch((err) => {
       console.log(err);
       toast.error("Error sending comment");
@@ -73,8 +80,8 @@ const Post = ({ profile, item, key, personalData }) => {
     await axios
       .get(`http://localhost:4000/api/comment/${item?._id}`)
       .then((resp) => {
-        console.log(resp);
         setComments(resp.data.comments);
+        setCommentCount(resp.data.comments.length);
       })
       .catch((err) => {
         console.log(err);
@@ -114,10 +121,18 @@ const Post = ({ profile, item, key, personalData }) => {
       )}
 
       {item?.imageLink && (
-        <div className="w-[100%] h-[300px]">
-          <img className="w-full h-full object-cover" src={item?.imageLink} />
+        <div className="w-[100%] h-[300px] cursor-pointer" onClick={() => setModalOpen(true)}>
+          <img className="w-full h-full object-cover" src={item?.imageLink} alt="Post" />
         </div>
       )}
+
+      {/* Image Modal */}
+      <ImageModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        image={item?.imageLink}
+        comments={comments.length > 0 ? comments : []}
+      />
 
       <div className="my-2 p-4 flex justify-between items-center">
         <div className="flex gap-1 items-center cursor-pointer">
@@ -126,7 +141,7 @@ const Post = ({ profile, item, key, personalData }) => {
         </div>
         <div className="flex gap-1 items-center cursor-pointer">
           <span className="text-sm text-gray-500">
-            {item?.comments || 0} Comments
+            {commentCount} Comments
           </span>
         </div>
       </div>
@@ -170,7 +185,7 @@ const Post = ({ profile, item, key, personalData }) => {
           <div className="flex gap-2 items-center">
             <img
               className="w-12 h-12 rounded-full border-2 border-white object-cover"
-              src={personalData?.profile_pic || "https://via.placeholder.com/150" }
+              src={personalData?.profile_pic || "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg" }
               alt=""
             />
             <form className="w-full flex gap-2" onSubmit={handleSendComment}>
@@ -192,18 +207,35 @@ const Post = ({ profile, item, key, personalData }) => {
           {/*Others Comments List */}
           <div className="w-full p-4">
             {comments.map((item, index) => {
+              const isOwner = personalData?._id && item?.user?._id && personalData._id.toString() === item.user._id.toString();
               return (
-                <div className="my-4">
-                  <div className="flex gap-3">
+                <div className="my-4" key={item._id || index}>
+                  <div className="flex gap-3 items-center">
                     <img
                       className="w-10 h-10 rounded-full border-2 border-white object-cover"
-                      src={item?.user?.profile_pic || "https://via.placeholder.com/150"}
+                      src={item?.user?.profile_pic || "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"}
                       alt=""
                     />
                     <div className="cursor-pointer">
                       <div className="text-md font-semibold">{item?.user?.f_name || "Unknown User"}</div>
                       <div className="text-xs text-gray-500">@{item?.user?.headline || "Unknown"}</div>
                     </div>
+                    {isOwner && (
+                      <DeleteIcon
+                        className="cursor-pointer ml-2 text-gray-400 hover:text-red-600"
+                        fontSize="small"
+                        onClick={async () => {
+                          try {
+                            await axios.delete(`http://localhost:4000/api/comment/${item._id}`, { withCredentials: true });
+                            setComments(comments.filter((c) => c._id !== item._id));
+                            setCommentCount((prev) => prev - 1);
+                            toast.success("Comment deleted");
+                          } catch (err) {
+                            toast.error("Failed to delete comment");
+                          }
+                        }}
+                      />
+                    )}
                   </div>
                   <div className="px-11 my-2">{item?.comment}</div>
                 </div>

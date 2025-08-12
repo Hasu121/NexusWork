@@ -1,3 +1,15 @@
+const AffiliatedCompany = require('../models/affiliatedCompany');
+// Check if company is affiliated (for registration/login/Google login)
+exports.checkCompany = async (req, res) => {
+    try {
+        const { company } = req.body;
+        const exists = await AffiliatedCompany.exists({ name: company });
+        return res.json({ exists: !!exists });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+}
 const User = require('../models/user')
 const bcryptjs = require('bcryptjs')
 const { OAuth2Client } = require('google-auth-library')
