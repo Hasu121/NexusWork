@@ -49,7 +49,7 @@ const AddModal = (props) => {
             className="w-15 h-15 rounded-4xl"
             src={
               props.personalData?.profile_pic ||
-              "https://via.placeholder.com/150"
+              "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
             }
             alt=""
           />
