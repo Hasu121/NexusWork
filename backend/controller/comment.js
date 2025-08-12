@@ -1,3 +1,21 @@
+exports.deleteComment = async (req, res) => {
+    try {
+        const { commentId } = req.params;
+        const userId = req.user._id;
+        const comment = await CommentModel.findById(commentId);
+        if (!comment) {
+            return res.status(404).json({ error: "Comment not found" });
+        }
+        if (comment.user.toString() !== userId.toString()) {
+            return res.status(403).json({ error: "You can only delete your own comments" });
+        }
+        await comment.deleteOne();
+        return res.status(200).json({ message: "Comment deleted successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error deleting comment" });
+    }
+};
 const CommentModel = require('../models/comment');
 const PostModel = require('../models/post');
 const NotificationModel = require('../models/notification');
