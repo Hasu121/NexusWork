@@ -36,10 +36,6 @@ const UserSchema = new mongoose.Schema({
         type: String,
         default: 'https://t3.ftcdn.net/jpg/03/16/91/28/360_F_316912806_RCeHVmUx5LuBMi7MKYTY5arkE4I0DcpU.jpg',
     },
-    curr_company: {
-        type: String,
-        default: '',
-    },
     about: {
         type: String,
         default: '',
@@ -56,7 +52,10 @@ const UserSchema = new mongoose.Schema({
             company_name: {
                 type: String,
             },
-            Duration: {
+            duration: {
+                type: String,
+            },
+            info: {
                 type: String,
             },
             location: {

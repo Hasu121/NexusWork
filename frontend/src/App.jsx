@@ -12,9 +12,12 @@ import Navbar2 from './components/Navbar2/navbar2.jsx'
 import Feeds from './pages/Feeds/feeds.jsx'
 import MyNetwork from './pages/MyNetwork/myNetwork.jsx'
 import Notification from './pages/Notification/notification.jsx'
-
+import Profile from './pages/Profile/profile.jsx'
 
 import axios from 'axios';
+import Activities from './pages/AllActivities/activities.jsx'
+import SingleActivity from './pages/SingleActivity/singleActivity.jsx'
+
 
 
 function App() {
@@ -45,6 +48,11 @@ function App() {
 
         <Route path="/notification" element={isLogin?<Notification /> : <Navigate to={'/login'} />} />
 
+        <Route path="/profile/:id" element={isLogin?<Profile /> : <Navigate to={'/login'} />} />
+
+        <Route path="/profile/:id/activities" element={isLogin?<Activities /> : <Navigate to={'/login'} />} />
+
+        <Route path="/profile/:id/activities/:postId" element={isLogin?<SingleActivity /> : <Navigate to={'/login'} />} />
       </Routes>
       <Footer />
     </div>
