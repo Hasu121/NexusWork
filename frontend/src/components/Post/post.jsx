@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ImageModal from "../Modal/ImageModal";
-import DeleteIcon from "@mui/icons-material/Delete";
+import DeleteIcon from '@mui/icons-material/Delete';
 import Card from "../Card/card";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
@@ -9,7 +9,6 @@ import SendIcon from "@mui/icons-material/Send";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import { Link } from "react-router-dom";
-
 const Post = ({ profile, item, personalData }) => {
   const [seeMore, setSeeMore] = useState(false);
   const [comment, setComment] = useState(false);
@@ -45,6 +44,15 @@ const Post = ({ profile, item, personalData }) => {
         console.log(err);
         toast.error("Error sending comment");
       });
+=======
+    await axios.post(`http://localhost:4000/api/comment`,{postId:item?._id, comment:commentText},{withCredentials: true}).then((res) => {
+      setComments([res.data.comment,...comments]);
+      setCommentText("");
+      setCommentCount((prev) => prev + 1);
+    }).catch((err) => {
+      console.log(err);
+      toast.error("Error sending comment");
+    });
   };
 
   useEffect(() => {
@@ -150,6 +158,8 @@ const Post = ({ profile, item, personalData }) => {
             src={item?.imageLink}
             alt="Post"
           />
+        <div className="w-[100%] h-[300px] cursor-pointer" onClick={() => setModalOpen(true)}>
+          <img className="w-full h-full object-cover" src={item?.imageLink} alt="Post" />
         </div>
       )}
 
@@ -168,6 +178,9 @@ const Post = ({ profile, item, personalData }) => {
         </div>
         <div className="flex gap-1 items-center cursor-pointer">
           <span className="text-sm text-gray-500">{commentCount} Comments</span>
+          <span className="text-sm text-gray-500">
+            {commentCount} Comments
+          </span>
         </div>
       </div>
 
@@ -217,6 +230,7 @@ const Post = ({ profile, item, personalData }) => {
                 personalData?.profile_pic ||
                 "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
               }
+              src={personalData?.profile_pic || "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg" }
               alt=""
             />
             <form className="w-full flex gap-2" onSubmit={handleSendComment}>
@@ -242,6 +256,7 @@ const Post = ({ profile, item, personalData }) => {
                 personalData?._id &&
                 item?.user?._id &&
                 personalData._id.toString() === item.user._id.toString();
+              const isOwner = personalData?._id && item?.user?._id && personalData._id.toString() === item.user._id.toString();
               return (
                 <div className="my-4" key={item._id || index}>
                   <div className="flex gap-3 items-center">
@@ -251,6 +266,7 @@ const Post = ({ profile, item, personalData }) => {
                         item?.user?.profile_pic ||
                         "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
                       }
+                      src={item?.user?.profile_pic || "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"}
                       alt=""
                     />
                     <div className="cursor-pointer">
@@ -274,6 +290,8 @@ const Post = ({ profile, item, personalData }) => {
                             setComments(
                               comments.filter((c) => c._id !== item._id)
                             );
+                            await axios.delete(`http://localhost:4000/api/comment/${item._id}`, { withCredentials: true });
+                            setComments(comments.filter((c) => c._id !== item._id));
                             setCommentCount((prev) => prev - 1);
                             toast.success("Comment deleted");
                           } catch (err) {
