@@ -9,6 +9,7 @@ const Login = (props) => {
   const [loginField, setLoginField] = useState({
     email: "",
     password: "",
+    company: ""
   });
 
   const onChangeInput = (event, key) => {
@@ -16,8 +17,21 @@ const Login = (props) => {
   };
 
   const handleLogin = async () => {
-    if (loginField.email.trim().length === 0 ||loginField.password.trim().length === 0) {
+    if (
+      loginField.email.trim().length === 0 ||
+      loginField.password.trim().length === 0 ||
+      loginField.company.trim().length === 0
+    ) {
       return toast.error("Please fill all fields");
+    }
+    // Check company affiliation before login
+    try {
+      const check = await axios.post("http://localhost:4000/api/auth/check-company", { company: loginField.company });
+      if (!check.data.exists) {
+        return toast.error("Company is not affiliated. Login denied.");
+      }
+    } catch (err) {
+      return toast.error("Error checking company affiliation.");
     }
     await axios.post("http://localhost:4000/api/auth/login", loginField, {withCredentials: true,}).then((res) => {
         props.changeLoginValue(true);
@@ -54,6 +68,16 @@ const Login = (props) => {
               onChange={(e) => onChangeInput(e, "password")}
               className="w-full text-x1 border-2 rounded-lg px-5 py-1"
               placeholder="Enter your password"
+            />
+          </div>
+          <div>
+            <label htmlFor="company">Company</label>
+            <input
+              type="text"
+              value={loginField.company}
+              onChange={(e) => onChangeInput(e, "company")}
+              className="w-full text-x1 border-2 rounded-lg px-5 py-1"
+              placeholder="Enter your company"
             />
           </div>
           <div
