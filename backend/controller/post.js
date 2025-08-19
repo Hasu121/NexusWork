@@ -73,3 +73,33 @@ exports.getPostById = async (req, res) => {
         res.status(500).json({ error: 'Server error', message:err.message});
     }
 }
+
+
+exports.getTop5Posts = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const posts = await PostModel.find({ user: userId }).sort({ createdAt: -1 }).populate('user').limit(5);
+        return res.status(200).json({
+            message: 'Fetched Data Successfully',
+            posts: posts
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+};
+
+
+exports.getAllPostsForUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const posts = await PostModel.find({ user: userId }).sort({ createdAt: -1 }).populate('user');
+        return res.status(200).json({
+            message: 'Fetched Data Successfully',
+            posts: posts
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+};
