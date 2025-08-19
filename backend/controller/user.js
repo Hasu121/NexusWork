@@ -191,25 +191,29 @@ exports.logout = async(req,res) => {
 }
 
 exports.findUser = async (req, res) => {
-    try{
-        let {query} = req.query;
+    try {
+        let { query } = req.query;
+        if (!query || query.trim() === "") {
+            return res.status(200).json({ message: "No query provided", users: [] });
+        }
         const users = await User.find({
             $and: [
-                {_id: { $ne: req.user._id } },
+                { _id: { $ne: req.user._id } },
                 {
-                    $or:[
-                        { name: {$regex: new RegExp(`^${query}`, "i")}},
-                        { email: {$regex: new RegExp(`^${query}`, "i")}}
+                    $or: [
+                        { name: { $regex: new RegExp(`^${query}`, "i") } },
+                        { f_name: { $regex: new RegExp(`^${query}`, "i") } },
+                        { email: { $regex: new RegExp(`^${query}`, "i") } }
                     ]
                 }
             ]
-        });
-        return res.status(201).json({ 
+        }).select('_id f_name name profile_pic email');
+        return res.status(200).json({
             message: "Users fetched successfully",
-            users:users
-         });
-    }catch(err){
+            users
+        });
+    } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Server error', message:err.message});
+        res.status(500).json({ error: 'Server error', message: err.message });
     }
 }
