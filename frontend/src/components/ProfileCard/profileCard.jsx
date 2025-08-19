@@ -1,10 +1,17 @@
 import React from 'react';
 import Card from '../Card/card';
+import { useNavigate } from 'react-router-dom';
 
 const ProfileCard = (props) => {
+  const navigate = useNavigate();
+  const handleClick = () => {
+    if (props.data?._id) {
+      navigate(`/profile/${props.data._id}`);
+    }
+  };
   return (
     <Card padding={0}>
-      <div className="relative">
+      <div className="relative cursor-pointer" onClick={handleClick}>
         {/* Cover Image */}
         <div className="relative w-full h-32 rounded-t-md overflow-hidden">
           <img
@@ -25,19 +32,19 @@ const ProfileCard = (props) => {
       </div>
 
       {/* Profile Info */}
-      <div className="pt-14 px-5 pb-5 text-center">
+      <div className="pt-14 px-5 pb-5 text-center cursor-pointer" onClick={handleClick}>
         <div className="text-xl font-semibold">{props?.data?.f_name}</div>
         <div className="text-sm text-gray-600">{props?.data?.headline}</div>
         <div className="text-sm text-gray-500">{props?.data?.curr_location}</div>
         <div className="text-sm text-gray-500">{props?.data?.curr_company}</div>
         <div className="mt-3">
-          <button className="px-4 py-1 text-sm font-medium border border-blue-600 text-blue-600 rounded-full hover:bg-blue-50 transition-colors">
+          <button className="px-4 py-1 text-sm font-medium border border-blue-600 text-blue-600 rounded-full hover:bg-blue-50 transition-colors" onClick={handleClick}>
             View Profile
           </button>
         </div>
       </div>
     </Card>
   );
-};
+}
 
 export default ProfileCard;

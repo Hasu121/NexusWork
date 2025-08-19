@@ -165,35 +165,39 @@ const Profile = () => {
                           {" "}
                           Share{" "}
                         </div>
-                        <div
-                          className="cursor-pointer p-2 border-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-700"
-                          onClick={async () => {
-                            try {
-                              await axios.post("http://localhost:4000/api/auth/logout", {}, { withCredentials: true });
-                              localStorage.removeItem("isLogin");
-                              localStorage.removeItem("userInfo");
-                              window.location.href = "/login";
-                            } catch (err) {
-                              alert("Logout failed");
-                            }
-                          }}
-                        >
-                          Logout
-                        </div>
+                        {ownData?._id === userData?._id && (
+                          <div
+                            className="cursor-pointer p-2 border-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-700"
+                            onClick={async () => {
+                              try {
+                                await axios.post("http://localhost:4000/api/auth/logout", {}, { withCredentials: true });
+                                localStorage.removeItem("isLogin");
+                                localStorage.removeItem("userInfo");
+                                window.location.href = "/login";
+                              } catch (err) {
+                                alert("Logout failed");
+                              }
+                            }}
+                          >
+                            Logout
+                          </div>
+                        )}
                       </div>
-                      <div className="my-5 flex gap-5">
-                        <div
-                          onClick={handleMessageModal}
-                          className="cursor-pointer p-2 border-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700"
-                        >
-                          {" "}
-                          Message{" "}
+                      {ownData?._id !== userData?._id && (
+                        <div className="my-5 flex gap-5">
+                          <div
+                            onClick={handleMessageModal}
+                            className="cursor-pointer p-2 border-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700"
+                          >
+                            {" "}
+                            Message{" "}
+                          </div>
+                          <div className="cursor-pointer p-2 border-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700">
+                            {" "}
+                            Connect{" "}
+                          </div>
                         </div>
-                        <div className="cursor-pointer p-2 border-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700">
-                          {" "}
-                          Connect{" "}
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
