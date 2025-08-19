@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ImageIcon from "@mui/icons-material/Image";
+import CloseIcon from "@mui/icons-material/Close";
 import { ToastContainer } from "react-toastify";
 import { Form } from "react-router-dom";
 import axios from "axios";
@@ -22,6 +23,10 @@ const AddModal = (props) => {
   };
 
 
+
+  const handleRemoveImage = () => {
+    setImageUrl(null);
+  };
 
   const handleUploadImage = async (e) => {
     const file = e.target.files;
@@ -49,7 +54,7 @@ const AddModal = (props) => {
             className="w-15 h-15 rounded-4xl"
             src={
               props.personalData?.profile_pic ||
-              "https://via.placeholder.com/150"
+              "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
             }
             alt=""
           />
@@ -71,12 +76,19 @@ const AddModal = (props) => {
       </div>
 
       {imageUrl && (
-        <div>
+        <div className="relative inline-block my-3">
           <img
-            className="w-20 h-20 rounded-xl"
+            className="w-32 h-32 rounded-xl object-cover"
             src={imageUrl}
-            alt=""
+            alt="Selected image"
           />
+          <button
+            onClick={handleRemoveImage}
+            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg transition-colors duration-200"
+            title="Remove image"
+          >
+            <CloseIcon fontSize="small" />
+          </button>
         </div>
       )}
 

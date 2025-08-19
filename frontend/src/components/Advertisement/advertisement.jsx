@@ -25,7 +25,7 @@ const Advertisement = () => {
           {/* Avatar Image (centered) */}
           <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-10">
             <img
-              src={userData?.profile_pic || "https://via.placeholder.com/150"}
+              src={userData?.profile_pic || "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"}
               alt="Ad Avatar"
               className="rounded-full border-4 border-white h-20 w-20 object-cover cursor-pointer"
             />
