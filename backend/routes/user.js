@@ -19,6 +19,10 @@ router.get('/self', Authentication.auth,(req,res)=>{
 })
 
 router.get('/findUser', Authentication.auth, UserController.findUser)
-
+router.post('/sendFriendReq', Authentication.auth, UserController.sendFriendRequest)
+router.post('/acceptFriendReq', Authentication.auth, UserController.acceptFriendRequest)
+router.get('/friendList', Authentication.auth, UserController.getFriendList)
+router.get('/pendingFriendList', Authentication.auth, UserController.getPendingFriendList)
+router.delete('/removeFriend/:friendId', Authentication.auth, UserController.removeFriend)
 
 module.exports = router;

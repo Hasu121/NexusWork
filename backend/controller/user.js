@@ -1,4 +1,12 @@
 const AffiliatedCompany = require('../models/affiliatedCompany');
+const NotificationModel = require('../models/notification');
+const User = require('../models/user')
+const bcryptjs = require('bcryptjs')
+const { OAuth2Client } = require('google-auth-library')
+const jwt = require('jsonwebtoken')
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+
+
 // Check if company is affiliated (for registration/login/Google login)
 exports.checkCompany = async (req, res) => {
     try {
@@ -10,11 +18,6 @@ exports.checkCompany = async (req, res) => {
         res.status(500).json({ error: 'Server error', message: err.message });
     }
 }
-const User = require('../models/user')
-const bcryptjs = require('bcryptjs')
-const { OAuth2Client } = require('google-auth-library')
-const jwt = require('jsonwebtoken')
-
 
 
 const cookieOptions = {
@@ -23,8 +26,6 @@ const cookieOptions = {
     sameSite: 'Lax'   //set None in production, else Lax
 }
 
-
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 
 {/* Google reg/login */}
@@ -211,5 +212,119 @@ exports.findUser = async (req, res) => {
     }catch(err){
         console.error(err);
         res.status(500).json({ error: 'Server error', message:err.message});
+    }
+}
+
+
+exports.sendFriendRequest = async (req, res) => {
+    try{
+        const sender = req.user._id;
+        const {receiver} = req.body;
+        const userExist = await User.findById(receiver);
+        if (!userExist) {
+            return res.status(400).json({ error: 'User not found' });
+        }
+        const index = req.user.friends.findIndex(id => id.equals(receiver));
+        if (index !== -1) {
+            return res.status(400).json({ error: 'Already Friends' });
+        }
+        const lastIndex = userExist.pending_friends.findIndex(id => id.equals(req.user._id));
+        if (lastIndex !== -1) {
+            return res.status(400).json({ error: 'Request already sent' });
+        }
+        userExist.pending_friends.push(sender);
+        let content = `${req.user.f_name} has sent you a friend request.`;
+        const notification = new NotificationModel({sender, receiver, content, type: 'friendRequest'});
+        await notification.save();
+        await userExist.save();
+
+        res.status(200).json({ message: 'Friend request sent successfully' });
+
+
+    }catch(err){
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message:err.message});
+    }
+}
+
+
+exports.acceptFriendRequest = async (req, res) => {
+    try {
+        let {friendId} = req.body
+        let selfId = req.user._id;
+        const friendData = await User.findById(friendId);
+        if (!friendData) {
+            return res.status(400).json({ error: 'No such user exist' });
+        }
+
+        const index = req.user.pending_friends.findIndex(id => id.equals(friendId))
+
+        if (index !== -1) {
+            req.user.pending_friends.splice(index, 1);
+        } else {
+            return res.status(400).json({ error: 'No friend request from this user' });
+        }
+        req.user.friends.push(friendId);
+        friendData.friends.push(req.user._id);
+        let content = `${req.user.f_name} has accepted your friend request.`;
+        const notification = new NotificationModel({ sender: selfId, receiver: friendId, content, type: 'friendRequest' });
+        await notification.save();
+
+        await friendData.save();
+        await req.user.save();
+
+        return res.status(200).json({ message: 'Connected Successfully' });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+}
+
+
+exports.getFriendList = async(req,res) =>{
+    try{
+        let friendsList = await req.user.populate({ path: 'friends', model: 'user' })
+        return res.status(200).json({ friends: friendList.friends });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+}
+
+exports.getPendingFriendList = async(req,res) =>{
+    try{
+        let pendingFriendList = await req.user.populate({ path: 'pending_friends', model: 'user' })
+        return res.status(200).json({ pendingFriends: pendingFriendList.pending_friends });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+}
+
+
+exports.removeFriend = async (req, res) => {
+    try{
+        let selfId = req.user._id;
+        let {friendId} = req.params;
+        const friendData = await User.findById(friendId);
+        if (!friendData) {
+            return res.status(400).json({ error: 'No such user exist' });
+        }
+        const index = req.user.friends.findIndex(id => id.equals(friendId));
+        const friendIndex = friendData.friends.findIndex(id => id.equals(selfId));
+        if (index !== -1) {
+            req.user.friends.splice(index, 1);
+        } else{
+            return res.status(400).json({ error: 'No request from such user' });
+        }
+        await req.user.save()
+        await friendData.save()
+        return res.status(200).json({ message: 'Friend removed successfully' });
+
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
     }
 }
