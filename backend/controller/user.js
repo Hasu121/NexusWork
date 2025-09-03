@@ -285,7 +285,7 @@ exports.acceptFriendRequest = async (req, res) => {
 exports.getFriendList = async(req,res) =>{
     try{
         let friendsList = await req.user.populate({ path: 'friends', model: 'user' })
-        return res.status(200).json({ friends: friendList.friends });
+        return res.status(200).json({ friends: friendsList.friends });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error', message: err.message });
@@ -312,17 +312,24 @@ exports.removeFriend = async (req, res) => {
             return res.status(400).json({ error: 'No such user exist' });
         }
         const index = req.user.friends.findIndex(id => id.equals(friendId));
-        const friendIndex = friendData.friends.findIndex(id => id.equals(selfId));
         if (index !== -1) {
             req.user.friends.splice(index, 1);
-        } else{
-            return res.status(400).json({ error: 'No request from such user' });
         }
-        await req.user.save()
-        await friendData.save()
+        const friendIndex = friendData.friends.findIndex(id => id.equals(selfId));
+        if (friendIndex !== -1) {
+            friendData.friends.splice(friendIndex, 1);
+        }
+        const pendingIndex = req.user.pending_friends.findIndex(id => id.equals(friendId));
+        if (pendingIndex !== -1) {
+            req.user.pending_friends.splice(pendingIndex, 1);
+        }
+        const friendPendingIndex = friendData.pending_friends.findIndex(id => id.equals(selfId));
+        if (friendPendingIndex !== -1) {
+            friendData.pending_friends.splice(friendPendingIndex, 1);
+        }
+        await req.user.save();
+        await friendData.save();
         return res.status(200).json({ message: 'Friend removed successfully' });
-
-
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error', message: err.message });

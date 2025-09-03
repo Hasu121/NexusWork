@@ -103,3 +103,45 @@ exports.getAllPostsForUser = async (req, res) => {
         res.status(500).json({ error: 'Server error', message: err.message });
     }
 };
+
+
+exports.deletePost = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const post = await PostModel.findById(postId);
+        if (!post) {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+        // Only post owner can delete
+        if (post.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Unauthorized: Only post owner can delete' });
+        }
+        await PostModel.findByIdAndDelete(postId);
+        return res.status(200).json({ message: 'Post deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+};
+
+// Edit post text by post owner
+exports.editPost = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const { desc } = req.body;
+        const post = await PostModel.findById(postId);
+        if (!post) {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+        // Only post owner can edit
+        if (post.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Unauthorized: Only post owner can edit' });
+        }
+        post.desc = desc;
+        await post.save();
+        return res.status(200).json({ message: 'Post updated successfully', post });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+};

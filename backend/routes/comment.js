@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const Authentication = require('../authentication/auth');
@@ -8,5 +7,7 @@ router.delete('/:commentId', Authentication.auth, CommentController.deleteCommen
 
 router.post('/', Authentication.auth, CommentController.createComment);
 router.get('/:postId', CommentController.getComments);
+router.put('/:commentId', Authentication.auth, CommentController.editComment);
+
 
 module.exports = router;
