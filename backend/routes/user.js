@@ -1,4 +1,3 @@
-
 const express = require('express')
 const router = express.Router()
 const UserController = require('../controller/user')
@@ -24,5 +23,6 @@ router.post('/acceptFriendReq', Authentication.auth, UserController.acceptFriend
 router.get('/friendList', Authentication.auth, UserController.getFriendList)
 router.get('/pendingFriendList', Authentication.auth, UserController.getPendingFriendList)
 router.delete('/removeFriend/:friendId', Authentication.auth, UserController.removeFriend)
+router.post('/likeProfile', Authentication.auth, UserController.likeProfile)
 
 module.exports = router;

@@ -23,3 +23,32 @@ exports.getMessage = async (req, res) => {
     res.status(500).json({ error: 'Server error', message: err.message });
   }
 }
+
+exports.editMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message } = req.body;
+    const msg = await MessageModel.findById(id);
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+    if (msg.sender.toString() !== req.user._id.toString()) return res.status(403).json({ error: 'Unauthorized' });
+    msg.message = message;
+    await msg.save();
+    return res.status(200).json({ success: true, message: 'Message updated', msg });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', message: err.message });
+  }
+};
+
+
+exports.deleteMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const msg = await MessageModel.findById(id);
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+    if (msg.sender.toString() !== req.user._id.toString()) return res.status(403).json({ error: 'Unauthorized' });
+    await msg.deleteOne();
+    return res.status(200).json({ success: true, message: 'Message deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', message: err.message });
+  }
+};

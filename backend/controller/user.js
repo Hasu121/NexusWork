@@ -335,3 +335,29 @@ exports.removeFriend = async (req, res) => {
         res.status(500).json({ error: 'Server error', message: err.message });
     }
 }
+
+exports.likeProfile = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { profileId } = req.body;
+        if (!profileId) {
+            return res.status(400).json({ error: 'Profile ID required' });
+        }
+        if (userId.toString() === profileId.toString()) {
+            return res.status(400).json({ error: 'You cannot like your own profile.' });
+        }
+        const profileUser = await User.findById(profileId);
+        if (!profileUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        if (profileUser.profileLikes.includes(userId)) {
+            return res.status(400).json({ error: 'You have already liked this profile.' });
+        }
+        profileUser.profileLikes.push(userId);
+        await profileUser.save();
+        return res.status(200).json({ message: 'Profile liked successfully', profileLikes: profileUser.profileLikes.length });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+}

@@ -78,6 +78,12 @@ const UserSchema = new mongoose.Schema({
     resume: {
         type: String,
     },
+    profileLikes: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'user',
+        }
+    ],
 },{timestamps: true});
 
 const userModel = mongoose.model('user', UserSchema);
