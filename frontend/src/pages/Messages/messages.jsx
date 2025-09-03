@@ -1,4 +1,4 @@
-import React, { useState, useEffect} from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Card from "../../components/Card/card";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import Conversation from "../../components/Conversation/conversation";
@@ -10,6 +10,9 @@ import socket from "../../../socket";
 
 
 const Messages = () => {
+  const [editMessageId, setEditMessageId] = useState(null);
+  const [editMessageText, setEditMessageText] = useState("");
+  const [menuOpenId, setMenuOpenId] = useState(null);
 
   const [conversations, setConversations] = useState([]);
   const [ownData, setOwnData] = useState(null);
@@ -18,7 +21,14 @@ const Messages = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [imageLink, setImageLink] = useState(null);
-  const [messageText,setMessageText] = useState("");
+  const [messageText, setMessageText] = useState("");
+
+
+  const ref = useRef();
+
+  useEffect(() => {
+    ref?.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages])
 
   const handleSelectedConv = (id, userData) => {
     setActiveConvId(id);
@@ -30,6 +40,24 @@ const Messages = () => {
     let userData = localStorage.getItem("userInfo");
     setOwnData(userData ? JSON.parse(userData) : null);
     fetchConversationOnLoad();
+  }, []);
+
+  useEffect(() => {
+    if (activeConvId) {
+      fetchMessages()
+    }
+  }, [activeConvId])
+
+  useEffect(() => {
+    // Listen for new messages and append them correctly
+    const handleReceiveMessage = (messageObj) => {
+      setMessages(prev => [...prev, messageObj]);
+    };
+    socket.on("receiveMessage", handleReceiveMessage);
+    // Cleanup listener on unmount
+    return () => {
+      socket.off("receiveMessage", handleReceiveMessage);
+    };
   }, []);
 
   const fetchConversationOnLoad = async () => {
@@ -46,14 +74,8 @@ const Messages = () => {
     });
   }
 
-  useEffect(()=>{
-    if (activeConvId) {
-      fetchMessages()
-    }
-  },[activeConvId])
 
-
-  const fetchMessages = async()=>{
+  const fetchMessages = async () => {
     await axios.get(`http://localhost:4000/api/message/${activeConvId}`, { withCredentials: true }).then(res => {
       console.log(res.data);
       setMessages(res.data.message)
@@ -85,10 +107,33 @@ const Messages = () => {
     }
   };
 
-  const handleSendMessage = async()=> {
-    await axios.post(`http://localhost:4000/api/message/`, {conversation: activeConvId, message: messageText, picture: imageLink}, {withCredentials: true}).then(res=>{
-      console.log(res)
-      socket.emit("sendMessage", activeConvId, res,data);
+  const handleSendMessage = async () => {
+  const handleEditMessage = async (id) => {
+    await axios.put(`http://localhost:4000/api/message/${id}`, { message: editMessageText }, { withCredentials: true })
+      .then(res => {
+        setMessages(messages.map(msg => msg._id === id ? { ...msg, message: editMessageText } : msg));
+        setEditMessageId(null);
+        setEditMessageText("");
+      })
+      .catch(err => {
+        console.log(err);
+        alert("Error editing message");
+      });
+  };
+
+  const handleDeleteMessage = async (id) => {
+    await axios.delete(`http://localhost:4000/api/message/${id}`, { withCredentials: true })
+      .then(res => {
+        setMessages(messages.filter(msg => msg._id !== id));
+      })
+      .catch(err => {
+        console.log(err);
+        alert("Error deleting message");
+      });
+  };
+    await axios.post(`http://localhost:4000/api/message/`, { conversation: activeConvId, message: messageText, picture: imageLink }, { withCredentials: true }).then(res => {
+      socket.emit("sendMessage", activeConvId, res.data.populatedMessage);
+      setMessageText("");
     }).catch(err => {
       console.log(err);
       alert("Error fetching messages");
@@ -153,20 +198,45 @@ const Messages = () => {
                     <div className="w-full">
                       {/* Individual texts */}
                       {
-                        messages.map((item,index)=>{
-                          return (<div key = {index} className="flex w-full cursor-pointer border-gray-300 gap-3 p-4">
-                        <div className="shrink-0">
-                          <img className="w-8 h-8 rounded-[100%] cursor-pointer" src={item?.sender?.profile_pic || "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"} />
-                        </div>
-                        <div className="mb-2 w-full">
-                          <div className="text-md">{item?.sender?.f_name || "Unknown User"}</div>
-                          <div className="text-sm mt-6 hover:bg-gray-500">{item?.message || "No message content"}</div>
-                          
-                          {
-                            item?.picture && <div className="my-2"><img className='w-[240px] h-[240px] rounded-md' src={item?.image || "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Webb%27s_First_Deep_Field.jpg/960px-Webb%27s_First_Deep_Field.jpg"} /></div>
-                          }
-                        </div>
-                      </div>)
+                        messages.map((item, index) => {
+                          const isOwn = item?.sender?._id === ownData?._id;
+                          return (
+                            <div ref={ref} key={index} className="flex w-full cursor-pointer border-gray-300 gap-3 p-4 relative">
+                              <div className="shrink-0">
+                                <img className="w-8 h-8 rounded-[100%] cursor-pointer" src={item?.sender?.profile_pic || "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"} />
+                              </div>
+                              <div className="mb-2 w-full">
+                                <div className="flex justify-between items-center">
+                                  <div className="text-md">{item?.sender?.f_name || "Unknown User"}</div>
+                                  {isOwn && (
+                                    <div>
+                                      <MoreHorizIcon style={{ cursor: 'pointer' }} onClick={() => setMenuOpenId(menuOpenId === item._id ? null : item._id)} />
+                                      {menuOpenId === item._id && (
+                                        <div className="absolute right-0 top-8 bg-white border rounded shadow-md z-10">
+                                          <button className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" onClick={() => { setEditMessageId(item._id); setEditMessageText(item.message); setMenuOpenId(null); }}>Edit</button>
+                                          <button className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" onClick={() => { handleDeleteMessage(item._id); setMenuOpenId(null); }}>Delete</button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                {editMessageId === item._id ? (
+                                  <div className="flex gap-2 items-center mt-2">
+                                    <input type="text" value={editMessageText} onChange={e => setEditMessageText(e.target.value)} className="border rounded px-2 py-1 w-full" />
+                                    <button className="px-2 py-1 bg-blue-600 text-white rounded" onClick={() => handleEditMessage(item._id)}>Save</button>
+                                    <button className="px-2 py-1 bg-gray-400 text-white rounded" onClick={() => setEditMessageId(null)}>Cancel</button>
+                                  </div>
+                                ) : (
+                                  <div className="text-sm mt-6 hover:bg-gray-500">{item?.message || "No message content"}</div>
+                                )}
+                                {item?.picture && (
+                                  <div className="my-2">
+                                    <img className='w-[240px] h-[240px] rounded-md' src={item?.image || "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Webb%27s_First_Deep_Field.jpg/960px-Webb%27s_First_Deep_Field.jpg"} />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
                         })
                       }
 
@@ -184,8 +254,8 @@ const Messages = () => {
                   </div>
                   {
                     (!loading) && <div onClick={handleSendMessage} className="px-3 py-1 cursor-pointer rounded-2xl border-1 bg-blue-950 text-white">
-                    Send
-                  </div>
+                      Send
+                    </div>
                   }
                 </div>
               </div>

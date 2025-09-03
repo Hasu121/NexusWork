@@ -10,12 +10,14 @@ import EditInfoModal from "../../components/EditInfoModal/editInfoModal";
 import AboutModal from "../../components/AboutModal/aboutModal";
 import ExpModal from "../../components/ExpModal/expModal";
 import MessageModal from "../../components/MessageModal/messageModal";
+import ResumeModal from "../../components/ResumeModal/resumeModal";
 import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 
 const Profile = () => {
+  const [showStatsModal, setShowStatsModal] = useState(false);
   const { id } = useParams();
   const [imageSetModal, setImageModal] = useState(false);
   const [circularImage, setCircularImage] = useState(true);
@@ -31,6 +33,8 @@ const Profile = () => {
     id: "",
     datas: {},
   });
+  const [resumeData, setResumeData] = useState(null);
+  const [showResumeModal, setShowResumeModal] = useState(false);
 
   const updateExpEdit = (data, id) => {
     setUpdateExpData({ ...updateExpData, clicked: true, id: id, data: data });
@@ -39,6 +43,7 @@ const Profile = () => {
 
   useEffect(() => {
     fetchDataOnLoad();
+    fetchResume();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [id]);
 
@@ -61,6 +66,15 @@ const Profile = () => {
       alert(error?.response?.data?.message || "Failed to fetch data");
     }
   };
+  const fetchResume = async () => {
+    try {
+      const res = await axios.get(`http://localhost:4000/api/resume/user/${id}`);
+      setResumeData(res.data.resume);
+    } catch (err) {
+      setResumeData(null);
+    }
+  };
+
   const handleMessageModal = () => {
     setMessageModal((prev) => !prev);
   };
@@ -218,9 +232,24 @@ const Profile = () => {
       }
     };
 
+  // Like profile logic
+  const handleLikeProfile = async () => {
+    if (ownData?._id === userData?._id) return;
+    try {
+      const res = await axios.post(
+        'http://localhost:4000/api/auth/likeProfile',
+        { profileId: userData?._id },
+        { withCredentials: true }
+      );
+      toast.success(res.data.message);
+      fetchDataOnLoad();
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Error liking profile');
+    }
+  };
 
   return (
-    <div className="px-5 xl:px-50 py-5 mt-5 flex flex-col gap-5 w-full pt-12 bg-gray-100">
+  <div className="px-5 xl:px-50 py-5 mt-5 flex flex-col gap-5 w-full pt-12 bg-gray-100">
       <div className="flex justify-between">
         {/* Left side */}
         <div className="w-full md:w-[70%]">
@@ -286,14 +315,43 @@ const Profile = () => {
                           Share{" "}
                         </div>
                         {ownData?._id === userData?._id && (
-                          <div
-                            className="cursor-pointer p-2 border-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-700"
-                            onClick={handleLogout}
-                          >
-                            Logout
-                          </div>
+                          <>
+                            <div
+                              className="cursor-pointer p-2 border-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700"
+                              onClick={() => setShowStatsModal(true)}
+                            >
+                              Show Profile Stats
+                            </div>
+                            <div
+                              className="cursor-pointer p-2 border-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-700"
+                              onClick={handleLogout}
+                            >
+                              Logout
+                            </div>
+                          </>
                         )}
                       </div>
+      {/* Profile Stats Modal */}
+      {showStatsModal && (
+        <Modal title="Profile Stats" closeModal={() => setShowStatsModal(false)}>
+          <Card padding={true}>
+            <div className="w-full flex flex-col gap-3">
+              <div className="flex justify-between">
+                <span className="font-semibold">Total Likes</span>
+                <span className="text-blue-900">{
+                  Array.isArray(postData)
+                    ? postData.reduce((acc, p) => acc + (Array.isArray(p.likes) ? p.likes.length : 0), 0)
+                    : 0
+                }</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Profile Likes</span>
+                <span className="text-pink-700">{userData?.profileLikes?.length || 0}</span>
+              </div>
+            </div>
+          </Card>
+        </Modal>
+      )}
                       {ownData?._id !== userData?._id && (
                         <div className="my-5 flex gap-5">
                           {isfriend() ? (
@@ -313,6 +371,14 @@ const Profile = () => {
                               {checkFriendStatus()}
                             </div>
                           )}
+                          <div
+                            className={`cursor-pointer p-2 border-2 rounded-xl bg-pink-600 text-white font-semibold hover:bg-pink-700 ${userData?.profileLikes?.includes(ownData?._id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={() => {
+                              if (!userData?.profileLikes?.includes(ownData?._id)) handleLikeProfile();
+                            }}
+                          >
+                            {userData?.profileLikes?.includes(ownData?._id) ? 'Profile Liked' : 'Like Profile'}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -362,6 +428,29 @@ const Profile = () => {
                 </div>
               </Card>
             </div>
+
+            {/* Resume Showcase Section */}
+            {resumeData && (
+              <div className="my-5">
+                <Card padding={1}>
+                  <div className="font-bold text-lg mb-2">Resume</div>
+                  <div className="mb-2 text-sm text-gray-600">Template: <span className="font-semibold text-blue-700">{resumeData.template}</span></div>
+                  <button
+                    className="px-4 py-1 text-sm font-medium border border-blue-600 text-blue-600 rounded-full hover:bg-blue-50 transition-colors mb-3"
+                    onClick={() => setShowResumeModal(true)}
+                  >
+                    View Full Resume
+                  </button>
+                  {/* Render resume fields */}
+                  <div className="text-md text-gray-800">
+                    <div><span className="font-semibold">Name:</span> {resumeData.data.name}</div>
+                    <div><span className="font-semibold">Email:</span> {resumeData.data.email}</div>
+                    <div><span className="font-semibold">Phone:</span> {resumeData.data.phone}</div>
+                    <div><span className="font-semibold">Summary:</span> {resumeData.data.summary}</div>
+                  </div>
+                </Card>
+              </div>
+            )}
 
             {/** Activity Card **/}
             <div className="mt-">
@@ -505,6 +594,13 @@ const Profile = () => {
       {messageModal && (
         <Modal title="Send Message" closeModal={handleMessageModal}>
           <MessageModal selfData={ownData} userData={userData} />
+        </Modal>
+      )}
+
+      {/* Resume Modal */}
+      {showResumeModal && resumeData && (
+        <Modal title="Resume Preview" closeModal={() => setShowResumeModal(false)}>
+          <ResumeModal resumeData={resumeData} />
         </Modal>
       )}
       <ToastContainer autoClose={1000}/>

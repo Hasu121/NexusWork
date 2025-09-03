@@ -56,6 +56,11 @@ const Feeds = () => {
     setAddPostModal(prev=>!prev);
   };
 
+  // Calculate total likes for user's posts
+  const totalLikes = post.reduce((acc, p) => acc + (Array.isArray(p.likes) ? p.likes.length : 0), 0);
+  // Profile likes from user data
+  const profileLikes = Array.isArray(personalData?.profileLikes) ? personalData.profileLikes.length : 0;
+
   return (
     <div className="px-5 xl:px-50 py-9 flex gap-5 w-full mt-5 bg-gray-100">
       {/* Left Side */}
@@ -65,13 +70,13 @@ const Feeds = () => {
         </div>
         <div className="w-full my-5">
           <Card padding={true}>
-            <div className="w-full flex justify-between">
-              <div className="text-md font-semibold">Profile views</div>
-              <div className="text-blue-900">123</div>
+            <div className="w-full flex justify-between mb-2">
+              <div className="text-md font-semibold">Total Post Likes</div>
+              <div className="text-blue-900">{totalLikes}</div>
             </div>
-            <div className="w-full flex justify-between">
-              <div className="text-md font-semibold">Post Impressions</div>
-              <div className="text-blue-900">900</div>
+            <div className="w-full flex justify-between mb-2">
+              <div className="text-md font-semibold">Profile Likes</div>
+              <div className="text-blue-900">{profileLikes}</div>
             </div>
           </Card>
         </div>
