@@ -41,6 +41,7 @@ exports.getResume = async (req, res) => {
   }
 };
 
+
 // Get resume by user id (for profile showcase)
 exports.getResumeByUserId = async (req, res) => {
   try {
@@ -51,3 +52,4 @@ exports.getResumeByUserId = async (req, res) => {
     res.status(500).json({ error: 'Server error', message: err.message });
   }
 };
+
