@@ -56,8 +56,8 @@ const Feeds = () => {
     setAddPostModal(prev=>!prev);
   };
 
-  // Calculate total likes for user's posts
-  const totalLikes = post.reduce((acc, p) => acc + (Array.isArray(p.likes) ? p.likes.length : 0), 0);
+  // Use totalPostLikes from backend
+  const totalLikes = personalData?.totalPostLikes ?? 0;
   // Profile likes from user data
   const profileLikes = Array.isArray(personalData?.profileLikes) ? personalData.profileLikes.length : 0;
 

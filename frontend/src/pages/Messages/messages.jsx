@@ -30,10 +30,17 @@ const Messages = () => {
     ref?.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages])
 
-  const handleSelectedConv = (id, userData) => {
+  const getOtherUser = (conv, ownId) => {
+    if (!conv || !conv.members) return null;
+    return conv.members.find(m => (m._id || m) !== ownId);
+  };
+
+  const handleSelectedConv = (id) => {
     setActiveConvId(id);
     socket.emit("joinConversation", id);
-    setSelectedConvDetails(userData);
+    const conv = conversations.find(c => c._id === id);
+    let ownId = ownData?._id;
+    setSelectedConvDetails(getOtherUser(conv, ownId));
   }
 
   useEffect(() => {
@@ -49,12 +56,10 @@ const Messages = () => {
   }, [activeConvId])
 
   useEffect(() => {
-    // Listen for new messages and append them correctly
     const handleReceiveMessage = (messageObj) => {
       setMessages(prev => [...prev, messageObj]);
     };
     socket.on("receiveMessage", handleReceiveMessage);
-    // Cleanup listener on unmount
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
     };
@@ -63,11 +68,15 @@ const Messages = () => {
   const fetchConversationOnLoad = async () => {
     await axios.get(`http://localhost:4000/api/conversation/get-conversation`, { withCredentials: true }).then(res => {
       setConversations(res.data.conversations)
-      setActiveConvId(res.data.conversations[0]?._id);
-      socket.emit("joinConversation", res.data.conversations[0]?._id);
-      let ownId = ownData?._id;
-      let arr = res.data.conversations[0]?.members?.filter((A) => A._id !== ownId)
-      setSelectedConvDetails(arr[0]);
+      if (res.data.conversations.length > 0 && ownData) {
+        setActiveConvId(res.data.conversations[0]._id);
+        socket.emit("joinConversation", res.data.conversations[0]._id);
+        let ownId = ownData?._id;
+        setSelectedConvDetails(getOtherUser(res.data.conversations[0], ownId));
+      } else {
+        setActiveConvId(null);
+        setSelectedConvDetails(null);
+      }
     }).catch((err) => {
       console.log(err);
       alert("Error fetching conversations");
@@ -107,7 +116,6 @@ const Messages = () => {
     }
   };
 
-  const handleSendMessage = async () => {
   const handleEditMessage = async (id) => {
     await axios.put(`http://localhost:4000/api/message/${id}`, { message: editMessageText }, { withCredentials: true })
       .then(res => {
@@ -122,15 +130,19 @@ const Messages = () => {
   };
 
   const handleDeleteMessage = async (id) => {
+    console.log('Deleting message with ID:', id);
     await axios.delete(`http://localhost:4000/api/message/${id}`, { withCredentials: true })
       .then(res => {
-        setMessages(messages.filter(msg => msg._id !== id));
+        fetchMessages();
+        setMenuOpenId(null);
       })
       .catch(err => {
-        console.log(err);
+        console.log('Delete error:', err);
         alert("Error deleting message");
       });
   };
+
+  const handleSendMessage = async () => {
     await axios.post(`http://localhost:4000/api/message/`, { conversation: activeConvId, message: messageText, picture: imageLink }, { withCredentials: true }).then(res => {
       socket.emit("sendMessage", activeConvId, res.data.populatedMessage);
       setMessageText("");
@@ -140,6 +152,21 @@ const Messages = () => {
     });
   }
 
+
+
+  // Click-away logic for menu
+  useEffect(() => {
+    const handleClickAway = (e) => {
+      if (menuOpenId) {
+        // If click is outside any open menu, close it
+        if (!e.target.closest('.message-menu')) {
+          setMenuOpenId(null);
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickAway);
+    return () => document.removeEventListener('mousedown', handleClickAway);
+  }, [menuOpenId]);
 
 
   return (
@@ -163,22 +190,22 @@ const Messages = () => {
             <div className="w-full md:flex">
               <div className="h-[500px] overflow-auto w-full md:w-[40%] border-r-1 border-gray-400">
                 {/* Chat list */}
-
-                {
+                {conversations.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500">No conversations yet.</div>
+                ) : (
                   conversations.map((item, index) => {
                     return (
-                      <Conversation activeConvId={activeConvId} handleSelectedConv={handleSelectedConv} item={item} key={index} ownData={ownData} />
+                      <Conversation activeConvId={activeConvId} handleSelectedConv={() => handleSelectedConv(item._id)} item={item} key={index} ownData={ownData} />
                     )
                   })
-                }
-
+                )}
               </div>
               {/* Message */}
               <div className="w-full md:w-[60%] border-gray-400">
                 <div className="border-gray-300 py-2 px-4 border-b-2 flex justify-between items-center">
                   <div>
-                    <p className="text-sm font-semibold">{selectedConvDetails?.f_name}</p>
-                    <p className="text-sm text-gray-500">{selectedConvDetails?.headline}</p>
+                    <p className="text-sm font-semibold">{selectedConvDetails?.f_name || "No user selected"}</p>
+                    <p className="text-sm text-gray-500">{selectedConvDetails?.headline || ""}</p>
                   </div>
                   <div>
                     <MoreHorizIcon />
@@ -188,16 +215,18 @@ const Messages = () => {
                   <div className="w-full border-b-1 border-gray-300 gap-3 p-4">
                     <img
                       className="w-16 h-15 rounded-[100%] cursor-pointer"
-                      src={selectedConvDetails?.profile_pic}
+                      src={selectedConvDetails?.profile_pic || "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"}
                     />
                     <div className="my-2">
-                      <div className="text-md">{selectedConvDetails?.f_name}</div>
-                      <div className="text-sm text-gray-500">{selectedConvDetails?.headline}</div>
+                      <div className="text-md">{selectedConvDetails?.f_name || "No user selected"}</div>
+                      <div className="text-sm text-gray-500">{selectedConvDetails?.headline || ""}</div>
                     </div>
 
                     <div className="w-full">
                       {/* Individual texts */}
-                      {
+                      {messages.length === 0 ? (
+                        <div className="p-8 text-center text-gray-400">No messages yet.</div>
+                      ) : (
                         messages.map((item, index) => {
                           const isOwn = item?.sender?._id === ownData?._id;
                           return (
@@ -212,9 +241,9 @@ const Messages = () => {
                                     <div>
                                       <MoreHorizIcon style={{ cursor: 'pointer' }} onClick={() => setMenuOpenId(menuOpenId === item._id ? null : item._id)} />
                                       {menuOpenId === item._id && (
-                                        <div className="absolute right-0 top-8 bg-white border rounded shadow-md z-10">
+                                        <div className="absolute right-0 top-8 bg-white border rounded shadow-md z-10 message-menu">
                                           <button className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" onClick={() => { setEditMessageId(item._id); setEditMessageText(item.message); setMenuOpenId(null); }}>Edit</button>
-                                          <button className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" onClick={() => { handleDeleteMessage(item._id); setMenuOpenId(null); }}>Delete</button>
+                                          <button className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" onClick={() => handleDeleteMessage(item._id)}>Delete</button>
                                         </div>
                                       )}
                                     </div>
@@ -238,7 +267,7 @@ const Messages = () => {
                             </div>
                           );
                         })
-                      }
+                      )}
 
                     </div>
                   </div>
