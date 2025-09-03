@@ -14,7 +14,6 @@ const SingleActivity = () => {
 
   const fetchDataOnLoad = async () => {
     await axios.get(`http://localhost:4000/api/post/getPostById/${postId}`).then((res) => {
-      setOwnData(res.data.user);
       setPost(res.data.post);
     }).catch (err => {
         console.error(err);
@@ -23,10 +22,9 @@ const SingleActivity = () => {
   };
 
   useEffect(() => {
-    fetchDataOnLoad();
-
-    let userData = localStorage.getItem("userInfo");
-    setOwnData(userData ? JSON.parse(userData) : null);
+  fetchDataOnLoad();
+  let userData = localStorage.getItem("userInfo");
+  setOwnData(userData ? JSON.parse(userData) : null);
   }, [id]);
 
   return (
@@ -41,7 +39,7 @@ const SingleActivity = () => {
       {/* Middle Side */}
       <div className="w-[100%] py-5 sm:w-[50%]">
         <div className="my-2 flex flex-col gap-2">
-          <Post item={post} personalData={ownData} />
+          <Post item={post} personalData={ownData} postOwnerId={post?.user?._id} />
         </div>
       </div>
 

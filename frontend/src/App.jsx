@@ -15,12 +15,11 @@ import MyNetwork from './pages/MyNetwork/myNetwork.jsx'
 import Notification from './pages/Notification/notification.jsx'
 import Profile from './pages/Profile/profile.jsx'
 import Resume from './pages/Resume/resume.jsx';
-
-import axios from 'axios';
 import Activities from './pages/AllActivities/activities.jsx'
 import SingleActivity from './pages/SingleActivity/singleActivity.jsx'
 import Card from './components/Card/card.jsx'
 import Messages from './pages/Messages/messages.jsx'
+
 
 
 
