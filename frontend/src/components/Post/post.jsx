@@ -10,7 +10,16 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import { Link } from "react-router-dom";
 
-const Post = ({ profile, item, personalData }) => {
+
+
+const Post = ({ profile, item, personalData, postOwnerId }) => {
+  const [editingCommentIndex, setEditingCommentIndex] = useState(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [commentOptionsIndex, setCommentOptionsIndex] = useState(null);
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(item?.desc || "");
+  const [showOptions, setShowOptions] = useState(false);
   const [seeMore, setSeeMore] = useState(false);
   const [comment, setComment] = useState(false);
 
@@ -57,6 +66,32 @@ const Post = ({ profile, item, personalData }) => {
       });
     }
   }, []);
+
+
+
+  const handleDeletePost = async () => {
+    if (!item?._id) return;
+    try {
+      await axios.delete(`http://localhost:4000/api/post/${item._id}`, { withCredentials: true });
+      toast.success("Post deleted successfully", { autoClose: 2000 });
+      setIsDeleted(true);
+    } catch (err) {
+      toast.error("Failed to delete post", { autoClose: 2000 });
+    }
+  };
+
+
+  const handleEditPost = async () => {
+    if (!item?._id || editText.trim() === "") return;
+    try {
+      await axios.put(`http://localhost:4000/api/post/${item._id}`, { desc: editText }, { withCredentials: true });
+      toast.success("Post updated successfully", { autoClose: 2000 });
+      setIsEditing(false);
+      item.desc = editText;
+    } catch (err) {
+      toast.error("Failed to update post", { autoClose: 2000 });
+    }
+  };
 
   const handleLikeFunc = async () => {
     await axios
@@ -107,38 +142,91 @@ const Post = ({ profile, item, personalData }) => {
 
   const desc = typeof item?.desc === "string" ? item.desc : "";
   return (
-    <Card padding={0}>
-      <div className="flex gap-3 p-4">
-        <div className="w-12 h-12 rounded-4xl">
-          <Link to={`/profile/${item?.user?._id}`}>
-            <img
-              className="w-12 h-12 rounded-full border-2 border-white object-cover"
-              src={item?.user?.profile_pic}
-              alt=""
-            />
-          </Link>
+    <>
+      {isDeleted ? null : (
+        <Card padding={0}>
+        <div className="flex gap-3 p-4">
+          <div className="w-12 h-12 rounded-4xl">
+            <Link to={`/profile/${item?.user?._id}`}>
+              <img
+                className="w-12 h-12 rounded-full border-2 border-white object-cover"
+                src={item?.user?.profile_pic}
+                alt=""
+              />
+            </Link>
+          </div>
+          <div className="w-full flex justify-between items-center">
+            <div>
+              <div className="text-lg font-semibold">{item?.user?.f_name}</div>
+              <div className="text-xs text-gray-500">{item?.user?.headline}</div>
+            </div>
+            {/* Show 3-dot options menu for post owner only if not in profile view */}
+            {!profile && personalData?._id && item?.user?._id && personalData._id.toString() === item.user._id.toString() && (
+              <div className="relative">
+                <button
+                  className="ml-2 p-2 rounded-full hover:bg-gray-200 focus:outline-none"
+                  onClick={() => setShowOptions((prev) => !prev)}
+                  title="Options"
+                >
+                  <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                    <circle cx="5" cy="12" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="19" cy="12" r="2" />
+                  </svg>
+                </button>
+                {showOptions && (
+                  <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg z-10">
+                    <button
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm"
+                      onClick={() => { setIsEditing(true); setShowOptions(false); }}
+                    >
+                      Edit Post
+                    </button>
+                    <button
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-600"
+                      onClick={() => { handleDeletePost(); setShowOptions(false); }}
+                    >
+                      Delete Post
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="w-full">
-          <div className="text-lg font-semibold">{item?.user?.f_name}</div>
-          <div className="text-xs text-gray-500">{item?.user?.headline}</div>
-        </div>
-      </div>
 
-      <div className="text-md p-4 my-3 whitespace-pre-line flex-grow">
-        {seeMore
-          ? desc
-          : desc?.length > 50
-          ? `${desc.slice(0, 50)}...`
-          : `${desc}`}
-        {desc?.length < 50 ? null : (
-          <span
-            className="text-blue-600 cursor-pointer"
-            onClick={() => setSeeMore(!seeMore)}
-          >
-            {seeMore ? " See Less" : " See More"}
-          </span>
-        )}
-      </div>
+        <div className="text-md p-4 my-3 whitespace-pre-line flex-grow">
+          {isEditing ? (
+            <div className="flex flex-col gap-2">
+              <textarea
+                className="border rounded p-2 w-full"
+                value={editText}
+                onChange={e => setEditText(e.target.value)}
+                rows={3}
+              />
+              <div className="flex gap-2">
+                <button className="bg-blue-600 text-white px-3 py-1 rounded" onClick={handleEditPost}>Save</button>
+                <button className="bg-gray-300 text-black px-3 py-1 rounded" onClick={() => setIsEditing(false)}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {seeMore
+                ? desc
+                : desc?.length > 50
+                ? `${desc.slice(0, 50)}...`
+                : `${desc}`}
+              {desc?.length < 50 ? null : (
+                <span
+                  className="text-blue-600 cursor-pointer"
+                  onClick={() => setSeeMore(!seeMore)}
+                >
+                  {seeMore ? " See Less" : " See More"}
+                </span>
+              )}
+            </>
+          )}
+        </div>
 
       {item?.imageLink && (
         <div
@@ -237,61 +325,140 @@ const Post = ({ profile, item, personalData }) => {
 
           {/*Others Comments List */}
           <div className="w-full p-4">
-            {comments.map((item, index) => {
-              const isOwner =
+            {comments.map((commentItem, index) => {
+              const isCommentOwner =
                 personalData?._id &&
-                item?.user?._id &&
-                personalData._id.toString() === item.user._id.toString();
+                commentItem?.user?._id &&
+                personalData._id.toString() === commentItem.user._id.toString();
+              const isPostOwner =
+                personalData?._id &&
+                (item?.user?._id || postOwnerId) &&
+                personalData._id.toString() === ((item?.user?._id || postOwnerId)?.toString());
               return (
-                <div className="my-4" key={item._id || index}>
-                  <div className="flex gap-3 items-center">
-                    <img
-                      className="w-10 h-10 rounded-full border-2 border-white object-cover"
-                      src={
-                        item?.user?.profile_pic ||
-                        "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
-                      }
-                      alt=""
-                    />
-                    <div className="cursor-pointer">
-                      <div className="text-md font-semibold">
-                        {item?.user?.f_name || "Unknown User"}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        @{item?.user?.headline || "Unknown"}
-                      </div>
-                    </div>
-                    {isOwner && (
-                      <DeleteIcon
-                        className="cursor-pointer ml-2 text-gray-400 hover:text-red-600"
-                        fontSize="small"
-                        onClick={async () => {
-                          try {
-                            await axios.delete(
-                              `http://localhost:4000/api/comment/${item._id}`,
-                              { withCredentials: true }
-                            );
-                            setComments(
-                              comments.filter((c) => c._id !== item._id)
-                            );
-                            setCommentCount((prev) => prev - 1);
-                            toast.success("Comment deleted");
-                          } catch (err) {
-                            toast.error("Failed to delete comment");
+                <React.Fragment key={commentItem._id || index}>
+                  <div className="my-4">
+                    <div className="flex gap-3 items-center">
+                      <Link to={`/profile/${commentItem?.user?._id}`}>
+                        <img
+                          className="w-10 h-10 rounded-full border-2 border-white object-cover"
+                          src={
+                            commentItem?.user?.profile_pic ||
+                            "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
                           }
-                        }}
-                      />
-                    )}
+                          alt=""
+                        />
+                      </Link>
+                      <div className="cursor-pointer">
+                        <div className="text-md font-semibold">
+                          {commentItem?.user?.f_name || "Unknown User"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          @{commentItem?.user?.headline || "Unknown"}
+                        </div>
+                      </div>
+                      {/* Show 3-dot options menu for comment owner or post owner only if not in profile view */}
+                      {!profile && (isCommentOwner || isPostOwner) && (
+                        <div className="relative">
+                          <button
+                            className="ml-2 p-1 rounded-full hover:bg-gray-200 focus:outline-none"
+                            onClick={() => setCommentOptionsIndex(commentOptionsIndex === index ? null : index)}
+                            title="Options"
+                          >
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                              <circle cx="5" cy="12" r="2" />
+                              <circle cx="12" cy="12" r="2" />
+                              <circle cx="19" cy="12" r="2" />
+                            </svg>
+                          </button>
+                          {commentOptionsIndex === index && (
+                            <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg z-10">
+                              {isCommentOwner && (
+                                <button
+                                  className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm"
+                                  onClick={() => {
+                                    setEditingCommentIndex(index);
+                                    setEditCommentText(commentItem.comment);
+                                    setCommentOptionsIndex(null);
+                                  }}
+                                >
+                                  Edit Comment
+                                </button>
+                              )}
+                              <button
+                                className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-600"
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  try {
+                                    await axios.delete(
+                                      `http://localhost:4000/api/comment/${commentItem._id}`,
+                                      { withCredentials: true }
+                                    );
+                                    setComments(
+                                      comments.filter((c) => c._id !== commentItem._id)
+                                    );
+                                    setCommentCount((prev) => prev - 1);
+                                    toast.success("Comment deleted");
+                                  } catch (err) {
+                                    toast.error("Failed to delete comment");
+                                  }
+                                  setCommentOptionsIndex(null);
+                                }}
+                              >
+                                Delete Comment
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="px-11 my-2">
+                      {editingCommentIndex === index ? (
+                        <div className="flex flex-col gap-2">
+                          <textarea
+                            className="border rounded p-2 w-full"
+                            value={editCommentText}
+                            onChange={e => setEditCommentText(e.target.value)}
+                            rows={2}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              className="bg-blue-600 text-white px-3 py-1 rounded"
+                              onClick={async () => {
+                                try {
+                                  await axios.put(`http://localhost:4000/api/comment/${commentItem._id}`, { comment: editCommentText }, { withCredentials: true });
+                                  setComments(comments.map((c, i) => i === index ? { ...c, comment: editCommentText } : c));
+                                  toast.success("Comment updated");
+                                  setEditingCommentIndex(null);
+                                } catch (err) {
+                                  toast.error("Failed to update comment");
+                                }
+                              }}
+                            >
+                              Save
+                            </button>
+                            <button
+                              className="bg-gray-300 text-black px-3 py-1 rounded"
+                              onClick={() => setEditingCommentIndex(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        commentItem?.comment
+                      )}
+                    </div>
                   </div>
-                  <div className="px-11 my-2">{item?.comment}</div>
-                </div>
+                </React.Fragment>
               );
             })}
           </div>
         </div>
       )}
-      <ToastContainer />
-    </Card>
+          <ToastContainer />
+        </Card>
+      )}
+    </>
   );
 };
 

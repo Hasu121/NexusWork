@@ -9,13 +9,11 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import SignUp from './pages/SignUp/signUp.jsx'
 import Login from './pages/Login/login.jsx'
 import Navbar2 from './components/Navbar2/navbar2.jsx'
-
 import Feeds from './pages/Feeds/feeds.jsx'
 import MyNetwork from './pages/MyNetwork/myNetwork.jsx'
 import Notification from './pages/Notification/notification.jsx'
 import Profile from './pages/Profile/profile.jsx'
 import Resume from './pages/Resume/resume.jsx';
-
 import axios from 'axios';
 import Activities from './pages/AllActivities/activities.jsx'
 import SingleActivity from './pages/SingleActivity/singleActivity.jsx'

@@ -40,3 +40,16 @@ exports.getResume = async (req, res) => {
     res.status(500).json({ error: 'Server error', message: err.message });
   }
 };
+
+
+// Get resume by user id (for profile showcase)
+exports.getResumeByUserId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const resume = await Resume.findOne({ user: id });
+    res.json({ resume });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', message: err.message });
+  }
+};
+

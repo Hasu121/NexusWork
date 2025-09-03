@@ -1,21 +1,3 @@
-exports.deleteComment = async (req, res) => {
-    try {
-        const { commentId } = req.params;
-        const userId = req.user._id;
-        const comment = await CommentModel.findById(commentId);
-        if (!comment) {
-            return res.status(404).json({ error: "Comment not found" });
-        }
-        if (comment.user.toString() !== userId.toString()) {
-            return res.status(403).json({ error: "You can only delete your own comments" });
-        }
-        await comment.deleteOne();
-        return res.status(200).json({ message: "Comment deleted successfully" });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error deleting comment" });
-    }
-};
 const CommentModel = require('../models/comment');
 const PostModel = require('../models/post');
 const NotificationModel = require('../models/notification');
@@ -70,5 +52,45 @@ exports.getComments = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error fetching comments" });
+    }
+};
+
+// Edit a comment by its owner
+exports.editComment = async (req, res) => {
+    try {
+        const { commentId } = req.params;
+        const { comment } = req.body;
+        const commentDoc = await CommentModel.findById(commentId);
+        if (!commentDoc) {
+            return res.status(404).json({ error: 'Comment not found' });
+        }
+        // Only comment owner can edit
+        if (commentDoc.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Unauthorized: Only comment owner can edit' });
+        }
+        commentDoc.comment = comment;
+        await commentDoc.save();
+        return res.status(200).json({ message: 'Comment updated successfully', comment: commentDoc });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+};
+exports.deleteComment = async (req, res) => {
+    try {
+        const { commentId } = req.params;
+        const userId = req.user._id;
+        const comment = await CommentModel.findById(commentId);
+        if (!comment) {
+            return res.status(404).json({ error: "Comment not found" });
+        }
+        if (comment.user.toString() !== userId.toString()) {
+            return res.status(403).json({ error: "You can only delete your own comments" });
+        }
+        await comment.deleteOne();
+        return res.status(200).json({ message: "Comment deleted successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error deleting comment" });
     }
 };

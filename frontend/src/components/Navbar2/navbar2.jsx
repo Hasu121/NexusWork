@@ -18,10 +18,16 @@ const Navbar2 = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedTerm, setDebouncedTerm] = useState("");
   const [searchUser, setSearchUser] = useState([]);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
+
 
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedTerm(searchTerm);
+      if (searchTerm === "") {
+        setSearchUser([]);
+      }
     }, 1000);
 
     return () => {
@@ -37,7 +43,7 @@ const Navbar2 = () => {
 
   const searchApiCall = async (term) => {
     await axios
-      .get(`http://localhost:4000/api/user/findUser?query=${debouncedTerm}`, {
+      .get(`http://localhost:4000/api/auth/findUser?query=${debouncedTerm}`, {
         withCredentials: true,
       })
       .then((res) => {
@@ -51,9 +57,22 @@ const Navbar2 = () => {
       });
   };
 
+  const fetchNotification = async () => {
+    await axios.get('http://localhost:4000/api/notification/activeNotification', { withCredentials: true })
+      .then((res) => {
+        setNotificationCount(res.data.notifications || 0);
+      })
+      .catch((err) => {
+        console.error(err);
+        alert(err?.response?.data?.error || "Failed to fetch notifications");
+      });
+  };
+
+
   useEffect(() => {
     let userData = localStorage.getItem("userInfo");
     setUserData(userData ? JSON.parse(userData) : null);
+    fetchNotification()
   }, []);
 
   return (
@@ -72,14 +91,21 @@ const Navbar2 = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="searchInput w-70 bg-gray-100 rounded-sm h-10 px-4"
             placeholder="Search"
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => { setSearchFocused(false); setSearchUser([]); }, 150)}
           />
-          {searchUser.length > 0 && (
+          {searchUser.length > 0 && debouncedTerm !== 0 && searchFocused && searchTerm !== "" && (
             <div className="absolute w-88 left-0 bg-gray-200">
               {searchUser.map((item, index) => {
                 return (
-                  <div
+                  <Link 
+                    to={`/profile/${item._id}`}
                     key={index}
                     className="flex mb-1 items-center gap-2 cursor-pointer hover:bg-gray-300 px-2 py-1"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setSearchUser([]);
+                    }}
                   >
                     <div>
                       <img
@@ -89,7 +115,7 @@ const Navbar2 = () => {
                       />
                     </div>
                     <div className="text-sm">{item.f_name}</div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
@@ -177,9 +203,11 @@ const Navbar2 = () => {
               }}
               className="text-2xl text-gray-500"
             />{" "}
-            <span className="p-0.5 rounded-full text:sm bg-red-700 text-white">
-              1
-            </span>{" "}
+            {notificationCount > 0 && (
+              <span className="p-0.5 rounded-full text:sm bg-red-700 text-white">
+                {notificationCount}
+              </span>
+            )}
           </div>
           <div
             className={`text-xs text-gray-500 ${

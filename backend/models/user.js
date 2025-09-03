@@ -66,18 +66,28 @@ const UserSchema = new mongoose.Schema({
     friends: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
+            ref: 'user',
         }
     ],
     pending_friends: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
+            ref: 'user',
         }
     ],
     resume: {
         type: String,
     },
+    totalPostLikes: {
+        type: Number,
+        default: 0,
+    },
+    profileLikes: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'user',
+        }
+    ],
 },{timestamps: true});
 
 const userModel = mongoose.model('user', UserSchema);

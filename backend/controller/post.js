@@ -27,15 +27,26 @@ exports.likeDislikePost = async (req, res) => {
         if (!post) return res.status(404).json({ error: 'Post not found' });
 
         const index = post.likes.indexOf(userId);
+        let action;
         if (index === -1) {
             post.likes.push(userId);
-            await post.save();
-            return res.json({ message: 'Post liked' });
+            action = 'liked';
         } else {
             post.likes.splice(index, 1);
-            await post.save();
-            return res.json({ message: 'Post disliked' });
+            action = 'disliked';
         }
+        await post.save();
+
+        // Recalculate totalPostLikes for post owner
+        const PostOwner = require('../models/user');
+        const owner = await PostOwner.findById(post.user);
+        if (owner) {
+            const allPosts = await PostModel.find({ user: owner._id });
+            owner.totalPostLikes = allPosts.reduce((acc, p) => acc + (Array.isArray(p.likes) ? p.likes.length : 0), 0);
+            await owner.save();
+        }
+
+        return res.json({ message: `Post ${action}` });
     }catch(err){
         console.error(err);
         res.status(500).json({ error: 'Server error', message:err.message});
@@ -98,6 +109,48 @@ exports.getAllPostsForUser = async (req, res) => {
             message: 'Fetched Data Successfully',
             posts: posts
         });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+};
+
+
+exports.deletePost = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const post = await PostModel.findById(postId);
+        if (!post) {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+        // Only post owner can delete
+        if (post.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Unauthorized: Only post owner can delete' });
+        }
+        await PostModel.findByIdAndDelete(postId);
+        return res.status(200).json({ message: 'Post deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error', message: err.message });
+    }
+};
+
+// Edit post text by post owner
+exports.editPost = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const { desc } = req.body;
+        const post = await PostModel.findById(postId);
+        if (!post) {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+        // Only post owner can edit
+        if (post.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Unauthorized: Only post owner can edit' });
+        }
+        post.desc = desc;
+        await post.save();
+        return res.status(200).json({ message: 'Post updated successfully', post });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error', message: err.message });
