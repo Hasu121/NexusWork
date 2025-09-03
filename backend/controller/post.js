@@ -27,15 +27,26 @@ exports.likeDislikePost = async (req, res) => {
         if (!post) return res.status(404).json({ error: 'Post not found' });
 
         const index = post.likes.indexOf(userId);
+        let action;
         if (index === -1) {
             post.likes.push(userId);
-            await post.save();
-            return res.json({ message: 'Post liked' });
+            action = 'liked';
         } else {
             post.likes.splice(index, 1);
-            await post.save();
-            return res.json({ message: 'Post disliked' });
+            action = 'disliked';
         }
+        await post.save();
+
+        // Recalculate totalPostLikes for post owner
+        const PostOwner = require('../models/user');
+        const owner = await PostOwner.findById(post.user);
+        if (owner) {
+            const allPosts = await PostModel.find({ user: owner._id });
+            owner.totalPostLikes = allPosts.reduce((acc, p) => acc + (Array.isArray(p.likes) ? p.likes.length : 0), 0);
+            await owner.save();
+        }
+
+        return res.json({ message: `Post ${action}` });
     }catch(err){
         console.error(err);
         res.status(500).json({ error: 'Server error', message:err.message});

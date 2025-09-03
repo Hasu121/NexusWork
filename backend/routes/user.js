@@ -13,9 +13,9 @@ router.get('/user/:id', UserController.getProfileByID)
 router.post('/logout', Authentication.auth, UserController.logout)
 
 
-router.get('/self', Authentication.auth,(req,res)=>{
-    return res.status(200).json({ user:req.user })
-})
+router.get('/self', Authentication.auth, (req, res) => {
+    return res.status(200).json({ user: req.user, totalPostLikes: req.user.totalPostLikes });
+});
 
 router.get('/findUser', Authentication.auth, UserController.findUser)
 router.post('/sendFriendReq', Authentication.auth, UserController.sendFriendRequest)
